@@ -28,6 +28,7 @@ class _Parser:
     parse_constant = None
     strict = True
 
+
 def pyjson_loads_lines(lines):
     scanner = py_make_scanner(_ParserPython)
     for line in lines:
@@ -39,23 +40,29 @@ def json_loads_lines(lines):
     for line in lines:
         scanner(line, 0)
 
+
 def jmodel_loads_lines(lines):
     for line in lines:
         Model.loads(line)
+
 
 def ujson_loads_lines(lines):
     for line in lines:
         ujson.loads(line)
 
+
 def json_loads(s):
     scanner = _json.make_scanner(_Parser)
     scanner(s, 0)
 
+
 def jmodel_loads(s):
     Model.loads(s)
 
+
 def ujson_loads(s):
     ujson.loads(s)
+
 
 def pyjson_loads(s):
     scanner = py_make_scanner(_ParserPython)
@@ -64,13 +71,7 @@ def pyjson_loads(s):
 
    
 if __name__ == '__main__':
-    #with open('twitter.json') as fd:
-    #    s = fd.read()
-
-    #jmodel_loads(s)
-    #sys.exit(1)
- 
-    with open('one-json-per-line.txt') as fd:
+    with open('./benchmark/data/one-json-per-line.txt') as fd:
         lines = fd.readlines()
 
 
@@ -91,10 +92,10 @@ if __name__ == '__main__':
 
     print("")
 
-    with open('twitter.json') as fd:
+    with open('./benchmark/data/huge-text.json') as fd:
         s = fd.read()
 
-    print("Parsing twitter file (size %d)" % len(s))
+    print("Parsing huge-text file (size %d)" % len(s))
     print("------------------------------")
     print("Time took Python json (Python version): {}".format(
         timeit.timeit("pyjson_loads(s)", number=2, setup="from __main__ import Model, s, pyjson_loads")
@@ -111,10 +112,10 @@ if __name__ == '__main__':
 
     print("")
 
-    with open('bellboy.json') as fd:
+    with open('./benchmark/data/medium.json') as fd:
         s = fd.read()
 
-    print("Parsing bellboy file (size %d)" % len(s))
+    print("Parsing medium file (size %d)" % len(s))
     print("------------------------------")
     print("Time took Python json (Python version): {}".format(
         timeit.timeit("pyjson_loads(s)", number=5, setup="from __main__ import Model, s, pyjson_loads")
@@ -129,4 +130,21 @@ if __name__ == '__main__':
         timeit.timeit("ujson_loads(s)", number=5, setup="from __main__ import ujson, s, ujson_loads")
     ))
 
+    with open('./benchmark/data/countries.json') as fd:
+        s = fd.read()
+
+    print("Parsing 243 countries file ")
+    print("----------------------------")
+    print("Time took Python json (Python version): {}".format(
+        timeit.timeit("pyjson_loads(s)", number=5, setup="from __main__ import Model, s, pyjson_loads")
+    ))
+    print("Time took cythonized Python json: {}".format(
+        timeit.timeit("jmodel_loads(s)", number=5, setup="from __main__ import Model, s, jmodel_loads")
+    ))
+    print("Time took Python json (C version) : {}".format(
+        timeit.timeit("json_loads(s)", number=5, setup="from __main__ import s, _json, json_loads")
+    ))
+    print("Time took ujson: {}".format(
+        timeit.timeit("ujson_loads(s)", number=5, setup="from __main__ import ujson, s, ujson_loads")
+    ))
 

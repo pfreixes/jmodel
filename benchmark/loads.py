@@ -1,11 +1,11 @@
 import timeit
 import ujson
 import _json
-import sys
 
 from jmodel.model import Model
 from json.decoder import JSONObject, JSONArray
 from json.scanner import py_make_scanner
+
 
 class _ParserPython:
     object_hook = None
@@ -69,25 +69,31 @@ def pyjson_loads(s):
     scanner(s, 0)
 
 
-   
 if __name__ == '__main__':
     with open('./benchmark/data/one-json-per-line.txt') as fd:
         lines = fd.readlines()
 
-
     print("Parsing many lines (lines %d) (Repeated 10 times)" % len(lines))
     print("------------------------------------------------")
     print("Time took Python json (Python version): {}".format(
-        timeit.timeit("pyjson_loads_lines(lines)", number=10, setup="from __main__ import Model, lines, pyjson_loads_lines")
+        timeit.timeit("pyjson_loads_lines(lines)",
+                      number=10,
+                      setup="from __main__ import Model, lines, pyjson_loads_lines")
     ))
     print("Time took cythonized Python json: {}".format(
-        timeit.timeit("jmodel_loads_lines(lines)", number=10, setup="from __main__ import Model, lines, jmodel_loads_lines")
+        timeit.timeit("jmodel_loads_lines(lines)",
+                      number=10,
+                      setup="from __main__ import Model, lines, jmodel_loads_lines")
     ))
     print("Time took Python json (C version) : {}".format(
-        timeit.timeit("json_loads_lines(lines)", number=10, setup="from __main__ import lines, _json, json_loads_lines")
+        timeit.timeit("json_loads_lines(lines)",
+                      number=10,
+                      setup="from __main__ import lines, _json, json_loads_lines")
     ))
     print("Time took ujson: {}".format(
-        timeit.timeit("ujson_loads_lines(lines)", number=10, setup="from __main__ import ujson, lines, ujson_loads_lines")
+        timeit.timeit("ujson_loads_lines(lines)",
+                      number=10,
+                      setup="from __main__ import ujson, lines, ujson_loads_lines")
     ))
 
     print("")
@@ -147,4 +153,3 @@ if __name__ == '__main__':
     print("Time took ujson: {}".format(
         timeit.timeit("ujson_loads(s)", number=5, setup="from __main__ import ujson, s, ujson_loads")
     ))
-

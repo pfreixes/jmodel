@@ -3,6 +3,7 @@ import pytest
 from jmodel.model import Model
 from jmodel.field import Field
 
+
 @pytest.fixture
 def foo_model():
     class Foo(Model):
@@ -10,6 +11,7 @@ def foo_model():
         b = Field()
 
     return Foo
+
 
 class TestModel:
 

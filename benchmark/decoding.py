@@ -9,7 +9,7 @@ def marshmallow_countries(s):
     class Country:
         def __init__(self, name, code):
             self.name = name
-            self.code = code 
+            self.code = code
 
     class CountrySchema(Schema):
         name = fields.String(required=True)
@@ -28,13 +28,13 @@ def marshmallow_medium(s):
 
     class Offer:
         def __init__(
-            self,
-            partner_id=None,
-            price=None,
-            cancellation=None,
-            room_type=None,
-            meal_plan=None,
-            deeplink=None):
+                self,
+                partner_id=None,
+                price=None,
+                cancellation=None,
+                room_type=None,
+                meal_plan=None,
+                deeplink=None):
 
             self.partner_id = partner_id
             self.price = price
@@ -42,7 +42,6 @@ def marshmallow_medium(s):
             self.room_type = room_type
             self.meal_plan = meal_plan
             self.deeplink = deeplink
- 
 
     class OfferSchema(Schema):
         partner_id = fields.String()
@@ -56,16 +55,14 @@ def marshmallow_medium(s):
         def make_object(self, data):
             return Offer(**data)
 
-
     class Image:
         def __init__(
-            self,
-            url=None,
-            provider=None):
+                self,
+                url=None,
+                provider=None):
 
             self.url = url
             self.provider = provider
- 
 
     class ImageSchema(Schema):
         url = fields.String()
@@ -74,26 +71,25 @@ def marshmallow_medium(s):
         @post_load
         def make_object(self, data):
             return Image(**data)
- 
 
     class Hotel:
         def __init__(
-            self,
-            rating=None,
-            distance=None,
-            property_type=None,
-            stars=None,
-            district=None,
-            city=None,
-            coordinates=None,
-            chain=None,
-            amenities=None,
-            relevance=None,
-            name_en=None,
-            hotel_id=None,
-            name=None,
-            images=None,
-            offers=None):
+                self,
+                rating=None,
+                distance=None,
+                property_type=None,
+                stars=None,
+                district=None,
+                city=None,
+                coordinates=None,
+                chain=None,
+                amenities=None,
+                relevance=None,
+                name_en=None,
+                hotel_id=None,
+                name=None,
+                images=None,
+                offers=None):
 
             self.rating = rating
             self.distance = distance
@@ -126,18 +122,17 @@ def marshmallow_medium(s):
         hotel_id = fields.String()
         name = fields.String()
 
-
         @post_load
         def make_object(self, data):
             return Hotel(**data)
 
     class Partner:
         def __init__(
-            self,
-            website_id=None,
-            image=None,
-            official=None,
-            name=None):
+                self,
+                website_id=None,
+                image=None,
+                official=None,
+                name=None):
 
             self.website_id = website_id
             self.image = image
@@ -162,7 +157,6 @@ def marshmallow_medium(s):
     results, error = schema.load(json.loads(s)['results'])
     assert len(results['hotels']) == 30
     assert len(results['partners']) == 148
-
 
 
 if __name__ == "__main__":
@@ -193,5 +187,3 @@ if __name__ == "__main__":
     print("Marshmallow took loading medium to models: {}".format(
         timeit.timeit("marshmallow_medium(s)", number=1, setup="from __main__ import marshmallow_medium, s")
     ))
-
- 

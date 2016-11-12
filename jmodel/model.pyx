@@ -1,3 +1,7 @@
+import inspect
+
+from .field import Field
+
 NaN = float('nan')
 PosInf = float('inf')
 NegInf = float('-inf')
@@ -79,7 +83,11 @@ cdef scannumber(const char *s, size_t idx, size_t len):
         raise Exception("Unterminated string starting at", s.decode(), next)
 
 
-cdef parse_object(char *s, int idx, size_t len):
+cdef parse_object(cls, char *s, int idx, size_t len):
+
+    fields = cls.fields()
+    fields_required = set([name for name, field in fields if field.required])
+
     pairs = {}
     idx = skip_whitespace(s, idx)
     if s[idx] == '}':
@@ -97,7 +105,7 @@ cdef parse_object(char *s, int idx, size_t len):
         idx = skip_whitespace(s, idx + 1)
 
         try:
-            value, idx = scan_once(s, idx, len)
+            value, idx = scan_once(cls, s, idx, len)
         except StopIteration as err:
             raise Exception("Expecting value", s, err.value)
 
@@ -115,7 +123,7 @@ cdef parse_object(char *s, int idx, size_t len):
                 "Expecting property name enclosed in double quotes", s, idx - 1, s[idx])
     return pairs, idx + 1
 
-cdef parse_array(char * s, int idx, size_t len):
+cdef parse_array(cls, char * s, int idx, size_t len):
     cdef char nextchar
     values = []
     idx = skip_whitespace(s, idx)
@@ -125,7 +133,7 @@ cdef parse_array(char * s, int idx, size_t len):
 
     while True:
         try:
-            value, idx = scan_once(s, idx, len)
+            value, idx = scan_once(cls, s, idx, len)
         except StopIteration as err:
             raise Exception("Expecting value", s, err.value) from None
         values.append(value)
@@ -139,7 +147,7 @@ cdef parse_array(char * s, int idx, size_t len):
 
     return values, idx + 1
 
-cdef scan_once(char *s,size_t idx, size_t len):
+cdef scan_once(cls, char *s,size_t idx, size_t len):
     cdef char nextchar
 
     if idx == len:
@@ -150,9 +158,9 @@ cdef scan_once(char *s,size_t idx, size_t len):
     if nextchar == '"':
         return scanstring(s, idx + 1, len)
     elif nextchar == '{':
-        return parse_object(s, idx + 1, len)
+        return parse_object(cls, s, idx + 1, len)
     elif nextchar == '[':
-        return parse_array(s, idx + 1, len)
+        return parse_array(cls, s, idx + 1, len)
     elif s[idx:idx+4] == b"null":
         return None, idx + 4
     elif s[idx:idx+4] == b"true":
@@ -176,4 +184,16 @@ class Model(dict):
     @classmethod
     def loads(cls, s):
         b = s.encode()
-        return scan_once(b, 0, len(b))
+        return scan_once(cls, b, 0, len(b))
+
+    @classmethod
+    def fields(cls):
+        """
+        Returns a dictionary with the :class:`jmodule.field.Field` derivated instances attached to the
+        `cls`.
+
+        :returns dict: key, value as name of the field and its instance.
+        """
+        return {
+            name:instance for name, instance in inspect.getmembers(cls, lambda attr: isinstance(attr, Field))}
+

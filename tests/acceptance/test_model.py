@@ -1,8 +1,8 @@
 import pytest
 
 from jmodel.model import Model
-from jmodel.fields import IntegerField, StringField
-from jmodel.exceptions import UnknownField
+from jmodel.field import Integer, String
+from jmodel.exception import Unknown
 
 
 class TestModel:
@@ -14,8 +14,8 @@ class TestModel:
     def test_loads(self, payload):
 
         class Foo(Model):
-            id = IntegerField()
-            name = StringField()
+            id = Integer()
+            name = String()
 
         f = Foo.loads(payload)
         assert f.id == 1
@@ -26,7 +26,7 @@ class TestModel:
         class Foo(Model):
             pass
 
-        with pytest.assertRaises(UnkownField):
+        with pytest.assertRaises(Unkown):
             f = Foo.loads(payload)
 
     def test_allow_unknown_fields(self, payload):

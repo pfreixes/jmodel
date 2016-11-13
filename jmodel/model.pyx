@@ -1,6 +1,7 @@
 import inspect
 
 from .field import Field
+from .exception import DecodeError
 
 NaN = float('nan')
 PosInf = float('inf')
@@ -32,7 +33,7 @@ cdef inline int is_whitespace(char c):
     return c == ' ' or c == '\t' or c == '\n' or c == '\r'
 
 
-cdef inline size_t skip_whitespace(const char * s, size_t idx):
+cdef inline size_t __skip_whitespaces(const char * s, size_t idx):
     while True:
         if not is_whitespace(s[idx]):
             break
@@ -83,13 +84,17 @@ cdef scannumber(const char *s, size_t idx, size_t len):
         raise Exception("Unterminated string starting at", s.decode(), next)
 
 
-cdef parse_object(cls, char *s, int idx, size_t len):
+cdef __decode_object(cls, char *s, int idx, size_t len, dict fields_cache={}):
 
-    fields = cls.fields()
-    fields_required = set([name for name, field in fields if field.required])
+    try:
+        fields, fields_required = fields_cache[cls.__name__]
+    except KeyError:
+        fields = cls.fields()
+        fields_required = set([name for name, field in fields if field.required])
+        fields_cache[cls.__name__] = (fields, fields_required)
 
     pairs = {}
-    idx = skip_whitespace(s, idx)
+    idx = __skip_whitespaces(s, idx)
     if s[idx] == '}':
         return {}, idx + 1
     elif s[idx] != '"':
@@ -98,56 +103,56 @@ cdef parse_object(cls, char *s, int idx, size_t len):
     while True:
         idx += 1
         key, idx = scanstring(s, idx, len)
-        idx = skip_whitespace(s, idx)
+        idx = __skip_whitespaces(s, idx)
         if s[idx] != ':':
             raise Exception("Expecting ':' delimiter", s, idx)
 
-        idx = skip_whitespace(s, idx + 1)
+        idx = __skip_whitespaces(s, idx + 1)
 
         try:
-            value, idx = scan_once(cls, s, idx, len)
+            value, idx = __scan_once(cls, s, idx, len, fields_cache=fields_cache)
         except StopIteration as err:
             raise Exception("Expecting value", s, err.value)
 
         pairs[key] = value
 
-        idx = skip_whitespace(s, idx)
+        idx = __skip_whitespaces(s, idx)
 
         if s[idx] == '}':
             break
         elif s[idx] != ',':
             raise Exception("Expecting ',' delimiter. Found ", s, idx - 1, s[idx])
-        idx = skip_whitespace(s, idx + 1)
+        idx = __skip_whitespaces(s, idx + 1)
         if s[idx] != '"':
             raise Exception(
                 "Expecting property name enclosed in double quotes", s, idx - 1, s[idx])
     return pairs, idx + 1
 
-cdef parse_array(cls, char * s, int idx, size_t len):
+cdef __decode_list(cls, char * s, int idx, size_t len, dict fields_cache={}):
     cdef char nextchar
     values = []
-    idx = skip_whitespace(s, idx)
+    idx = __skip_whitespaces(s, idx)
     # Look-ahead for trivial empty array
     if s[idx] == ']':
         return values, idx + 1
 
     while True:
         try:
-            value, idx = scan_once(cls, s, idx, len)
+            value, idx = __scan_once(cls, s, idx, len, fields_cache=fields_cache)
         except StopIteration as err:
             raise Exception("Expecting value", s, err.value) from None
         values.append(value)
-        idx = skip_whitespace(s, idx)
+        idx = __skip_whitespaces(s, idx)
         if s[idx] == ']':
             break
         elif s[idx] != ',':
             raise Exception("Expecting ',' delimiter", s, idx - 1)
 
-        idx = skip_whitespace(s, idx+1)
+        idx = __skip_whitespaces(s, idx+1)
 
     return values, idx + 1
 
-cdef scan_once(cls, char *s,size_t idx, size_t len):
+cdef __scan_once(cls, char *s,size_t idx, size_t len, dict fields_cache={}):
     cdef char nextchar
 
     if idx == len:
@@ -158,9 +163,9 @@ cdef scan_once(cls, char *s,size_t idx, size_t len):
     if nextchar == '"':
         return scanstring(s, idx + 1, len)
     elif nextchar == '{':
-        return parse_object(cls, s, idx + 1, len)
+        return __decode_object(cls, s, idx + 1, len, fields_cache=fields_cache)
     elif nextchar == '[':
-        return parse_array(cls, s, idx + 1, len)
+        return __decode_list(cls, s, idx + 1, len, fields_cache=fields_cache)
     elif s[idx:idx+4] == b"null":
         return None, idx + 4
     elif s[idx:idx+4] == b"true":
@@ -179,12 +184,35 @@ cdef scan_once(cls, char *s,size_t idx, size_t len):
     else:
         raise StopIteration(idx)
 
-class Model(dict):
+class Model:
 
     @classmethod
-    def loads(cls, s):
+    def loads(cls, s, many=False):
+        """
+        Decode the JSON `s` payload and build the model defined by the `cls` parameter.
+
+        :param cls: :class:`jmodel.model.Model` class or derivated one that defines the fields
+                     and their types expected.
+        :param s: str.
+        :param many: bool, default False. Use True to decode a list of `cls` JSON objects.
+        :returns :class:`jmodel.model.Model`: An instance of the `cls` given as a parameter.
+
+        :raises :class:`jmodel.exception.DecodeError`: When JSON object is not well formed.
+        """
+        if len(s) == 0:
+            raise DecodeError("Empty buffer", s, 0)
+
         b = s.encode()
-        return scan_once(cls, b, 0, len(b))
+        try:
+            idx = __skip_whitespaces(b, 0)
+            if many and b[idx:idx+1] == b"[":
+                return __decode_list(cls, b, idx+1, len(b))
+            elif not many and b[idx:idx+1] == b"{":
+                return __decode_object(cls, b, idx+1, len(b))
+            else:
+                raise DecodeError("Invalid start char", b, idx)
+        except IndexError:
+            raise DecodeError("Invalid payload", b, idx)
 
     @classmethod
     def fields(cls):
@@ -195,5 +223,5 @@ class Model(dict):
         :returns dict: key, value as name of the field and its instance.
         """
         return {
-            name:instance for name, instance in inspect.getmembers(cls, lambda attr: isinstance(attr, Field))}
+            name:instance for name, instance in cls.__dict__.items() if isinstance(instance, Field)}
 

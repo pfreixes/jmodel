@@ -3,6 +3,7 @@ import ujson
 import _json
 
 from jmodel.model import Model
+from jmodel.exception import DecodeError
 from json.decoder import JSONObject, JSONArray
 from json.scanner import py_make_scanner
 
@@ -42,8 +43,12 @@ def json_loads_lines(lines):
 
 
 def jmodel_loads_lines(lines):
-    for line in lines:
-        Model.loads(line)
+    try:
+        for line in lines:
+            Model.loads(line)
+    except DecodeError as e:
+        print(e)
+        raise
 
 
 def ujson_loads_lines(lines):
@@ -56,8 +61,12 @@ def json_loads(s):
     scanner(s, 0)
 
 
-def jmodel_loads(s):
-    Model.loads(s)
+def jmodel_loads(s, many=False):
+    try:
+        Model.loads(s, many=many)
+    except DecodeError as e:
+        print(e)
+        raise
 
 
 def ujson_loads(s):
@@ -145,7 +154,7 @@ if __name__ == '__main__':
         timeit.timeit("pyjson_loads(s)", number=5, setup="from __main__ import Model, s, pyjson_loads")
     ))
     print("Time took cythonized Python json: {}".format(
-        timeit.timeit("jmodel_loads(s)", number=5, setup="from __main__ import Model, s, jmodel_loads")
+        timeit.timeit("jmodel_loads(s, many=True)", number=5, setup="from __main__ import Model, s, jmodel_loads")
     ))
     print("Time took Python json (C version) : {}".format(
         timeit.timeit("json_loads(s)", number=5, setup="from __main__ import s, _json, json_loads")

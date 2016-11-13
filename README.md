@@ -1,6 +1,15 @@
-IN PROGRESS ....
+jmodel is a json decoder plus a model builder designed to run fast. Instead of perform the class instantiation
+in the Python layer, Jmodel uses the same decoder loop - written in Cython - to perform the model builder
+stages. As a result Jmodel allows to you instantiate your Python models several times faster than with other
+strategies.
 
-# Time needed to decode and build models
+The following snippet shows how it can be used, first having a explict model declaration and then building
+the related instances with the ``loads`` function
+
+ 
+# Benchmarking
+
+## Time needed to decode and build models
 
 Time decoding and loading models related with the medium file
 
@@ -9,7 +18,7 @@ Time decoding and loading models related with the medium file
 | Marshmallow         |         0.024 |
 | Jmodel              |             ? |
 
-# Bencharks loads function
+## Loads function
 
 Parsing many lines (lines 1000) (Repeated 10 times)
 

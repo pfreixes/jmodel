@@ -1,7 +1,7 @@
 import inspect
 
-from .field import Field
-from .exception import DecodeError
+from .fields import Field
+from .exceptions import DecodeError
 
 NaN = float('nan')
 PosInf = float('inf')
@@ -199,10 +199,11 @@ class Model:
 
         :raises :class:`jmodel.exception.DecodeError`: When JSON object is not well formed.
         """
-        if len(s) == 0:
+        if not s or len(s) == 0:
             raise DecodeError("Empty buffer", s, 0)
 
         b = s.encode()
+
         try:
             idx = __skip_whitespaces(b, 0)
             if many and b[idx:idx+1] == b"[":

@@ -1,7 +1,8 @@
 class DecodeError(Exception):
-    """ Exception raised when is tryied to decode an invalid JSON object, human readable
-    message can be found in the `msg` attribute, meanwhile the character where the error
-    was occurred can be found through the `offset` attribute.
+    """
+    Exception raised when is decoded an invalid JSON object. Human readable
+    message can be found in the `msg` attribute, meanwhile the character
+    where the error was occurred can be found through the `offset` attribute.
     """
     def __init__(self, msg, s, offset):
         self.msg = msg

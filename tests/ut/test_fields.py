@@ -1,4 +1,4 @@
-from jmodel.field import Field
+from jmodel.fields import Field
 
 
 class TestField:
